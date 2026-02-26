@@ -383,23 +383,31 @@
 
 <!-- Custom weights panel -->
 <div class="weights-panel" id="weightsPanel" style="display:none;max-width:900px;margin:0 16px 16px;padding:16px;">
-  <h3>⚙️ スコア重み設定 (合計が自動調整されます)</h3>
+  <h3>⚙️ スコア重み設定（合計が自動調整されます）</h3>
   <div class="sliders">
     <div class="slider-item">
-      <label>🌨️ 新雪量 <span id="wSnowLabel">40</span>%</label>
-      <input type="range" id="wSnow" min="0" max="100" value="40" oninput="updateLabel('wSnow','wSnowLabel')" />
+      <label>❄️ 雪質指数 <span id="wSnowQLabel">25</span>%</label>
+      <input type="range" id="wSnowQ" min="0" max="100" value="25" oninput="updateLabel('wSnowQ','wSnowQLabel')" />
     </div>
     <div class="slider-item">
-      <label>📦 積雪深 <span id="wDepthLabel">20</span>%</label>
-      <input type="range" id="wDepth" min="0" max="100" value="20" oninput="updateLabel('wDepth','wDepthLabel')" />
+      <label>🌨️ 3日累計降雪 <span id="wAccumLabel">25</span>%</label>
+      <input type="range" id="wAccum" min="0" max="100" value="25" oninput="updateLabel('wAccum','wAccumLabel')" />
     </div>
     <div class="slider-item">
-      <label>☀️ 晴天度 <span id="wSunLabel">20</span>%</label>
-      <input type="range" id="wSun" min="0" max="100" value="20" oninput="updateLabel('wSun','wSunLabel')" />
+      <label>📦 積雪深 <span id="wDepthLabel">15</span>%</label>
+      <input type="range" id="wDepth" min="0" max="100" value="15" oninput="updateLabel('wDepth','wDepthLabel')" />
     </div>
     <div class="slider-item">
-      <label>🌡️ 気温 (低い方がGood) <span id="wTempLabel">20</span>%</label>
-      <input type="range" id="wTemp" min="0" max="100" value="20" oninput="updateLabel('wTemp','wTempLabel')" />
+      <label>☀️ 晴天度 <span id="wSunLabel">15</span>%</label>
+      <input type="range" id="wSun" min="0" max="100" value="15" oninput="updateLabel('wSun','wSunLabel')" />
+    </div>
+    <div class="slider-item">
+      <label>🌡️ 気温トレンド <span id="wTempLabel">10</span>%</label>
+      <input type="range" id="wTemp" min="0" max="100" value="10" oninput="updateLabel('wTemp','wTempLabel')" />
+    </div>
+    <div class="slider-item">
+      <label>🏔️ 標高ボーナス <span id="wElevLabel">10</span>%</label>
+      <input type="range" id="wElev" min="0" max="100" value="10" oninput="updateLabel('wElev','wElevLabel')" />
     </div>
   </div>
 </div>
@@ -457,11 +465,15 @@ const RESORTS = [
 let currentMode = 'powder';
 
 // ============================================================
-// 初期化
+// 初期化 — タイムゾーンに依存しない「今日」の取得
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  const today = new Date();
-  document.getElementById('targetDate').value = today.toISOString().split('T')[0];
+  const now = new Date();
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+  const y = jst.getFullYear();
+  const m = String(jst.getMonth() + 1).padStart(2, '0');
+  const d = String(jst.getDate()).padStart(2, '0');
+  document.getElementById('targetDate').value = `${y}-${m}-${d}`;
 });
 
 function setMode(mode) {
@@ -480,111 +492,187 @@ function updateLabel(sliderId, labelId) {
 // ============================================================
 function getWeights() {
   if (currentMode === 'powder') {
-    return { snow: 0.50, depth: 0.30, sun: 0.05, temp: 0.15 };
+    // パウダー: 雪質指数・累積降雪を重視、風速ペナルティ強め
+    return { snowQuality: 0.30, accumSnow: 0.25, depth: 0.20, sun: 0.05, temp: 0.10, elev: 0.10 };
   } else if (currentMode === 'sunny') {
-    return { snow: 0.05, depth: 0.15, sun: 0.60, temp: 0.20 };
+    // 晴天: 視界・晴れを最優先、気温は快適さ重視
+    return { snowQuality: 0.05, accumSnow: 0.10, depth: 0.10, sun: 0.50, temp: 0.15, elev: 0.10 };
   } else {
-    const wSnow  = parseInt(document.getElementById('wSnow').value);
-    const wDepth = parseInt(document.getElementById('wDepth').value);
-    const wSun   = parseInt(document.getElementById('wSun').value);
-    const wTemp  = parseInt(document.getElementById('wTemp').value);
-    const total  = wSnow + wDepth + wSun + wTemp || 1;
-    return { snow: wSnow/total, depth: wDepth/total, sun: wSun/total, temp: wTemp/total };
+    const wQ    = parseInt(document.getElementById('wSnowQ').value);
+    const wA    = parseInt(document.getElementById('wAccum').value);
+    const wD    = parseInt(document.getElementById('wDepth').value);
+    const wS    = parseInt(document.getElementById('wSun').value);
+    const wT    = parseInt(document.getElementById('wTemp').value);
+    const wE    = parseInt(document.getElementById('wElev').value);
+    const total = wQ + wA + wD + wS + wT + wE || 1;
+    return { snowQuality: wQ/total, accumSnow: wA/total, depth: wD/total,
+             sun: wS/total, temp: wT/total, elev: wE/total };
   }
 }
 
 // ============================================================
-// Open-Meteo APIからデータ取得
+// Open-Meteo API — 当日 + 直近2日分を取得
 // ============================================================
 async function fetchWeather(resort, date) {
+  // 累積降雪用に2日前から取得
+  const from = new Date(date);
+  from.setDate(from.getDate() - 2);
+  const startDate = from.toISOString().split('T')[0];
+
   const url = `https://api.open-meteo.com/v1/forecast?`
     + `latitude=${resort.lat}&longitude=${resort.lon}`
-    + `&daily=snowfall_sum,snow_depth_max,precipitation_sum,temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max`
-    + `&hourly=snowfall,snow_depth,temperature_2m,cloudcover,windspeed_10m`
+    + `&daily=snowfall_sum,snow_depth_max,precipitation_sum,`
+    + `temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max`
+    + `&hourly=temperature_2m,cloudcover`
     + `&timezone=Asia%2FTokyo`
-    + `&start_date=${date}&end_date=${date}`;
+    + `&start_date=${startDate}&end_date=${date}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
 
 // ============================================================
-// スコア計算
+// スコア計算（全7要素）
 // ============================================================
-function calcScore(data, weights) {
-  const d = data.daily;
+function calcScore(data, weights, resort) {
+  const daily = data.daily;
+  // APIは [2日前, 1日前, 当日] の3要素を返す（startDateから3日分）
+  const idx = daily.time.length - 1; // 当日は末尾
 
-  // 新雪量スコア（0-100）: 30cm以上で満点
-  const snowfall = d.snowfall_sum?.[0] ?? 0;
-  const snowScore = Math.min(snowfall / 30 * 100, 100);
+  // --- 基礎データ ---
+  const snowfall  = daily.snowfall_sum?.[idx]       ?? 0;
+  const depth     = daily.snow_depth_max?.[idx]     ?? 0;
+  const cloud     = daily.cloudcover_mean?.[idx]    ?? 50;
+  const tempMax   = daily.temperature_2m_max?.[idx] ?? 0;
+  const tempMin   = daily.temperature_2m_min?.[idx] ?? -5;
+  const windMax   = daily.windspeed_10m_max?.[idx]  ?? 0;
+  const precip    = daily.precipitation_sum?.[idx]  ?? 0;
 
-  // 積雪深スコア（0-100）: 200cm以上で満点
-  const depth = d.snow_depth_max?.[0] ?? 0;
+  // --- ① 雪質指数（気温×降雪の組み合わせ）---
+  // 降雪があり気温が低いほどサラサラ。降雪なし or 高温はスコア低
+  let snowQualityScore = 0;
+  if (snowfall > 0) {
+    // 気温が低いほど良質（-10℃以下=100点、0℃=50点、+5℃=0点）
+    const tempFactor = Math.max(0, Math.min(100, (-tempMax + 5) / 15 * 100));
+    // 降雪量（15cm以上で満点）
+    const snowFactor = Math.min(snowfall / 15 * 100, 100);
+    snowQualityScore = (tempFactor * 0.6 + snowFactor * 0.4);
+  }
+
+  // --- ② 累積降雪スコア（直近3日合計）---
+  const accumSnow = (daily.snowfall_sum ?? []).reduce((s, v) => s + (v ?? 0), 0);
+  // 50cm以上で満点
+  const accumScore = Math.min(accumSnow / 50 * 100, 100);
+
+  // --- ③ 積雪深スコア（ベースの豊富さ）---
+  // 200cm以上で満点
   const depthScore = Math.min(depth / 200 * 100, 100);
 
-  // 晴天スコア（0-100）: cloudcoverが低いほど高い
-  const cloud = d.cloudcover_mean?.[0] ?? 50;
+  // --- ④ 晴天スコア ---
   const sunScore = Math.max(0, 100 - cloud);
 
-  // 気温スコア（0-100）: パウダー向けは低温が良い
-  // 最高気温が-5℃以下で満点、5℃以上で0点
-  const tempMax = d.temperature_2m_max?.[0] ?? 0;
-  const tempScore = Math.max(0, Math.min(100, (-tempMax + 5) / 10 * 100));
+  // --- ⑤ 気温トレンドスコア ---
+  // 朝晩の冷え込み（最低気温）と日中（最高気温）の差で「パウダー持ち」を評価
+  // 最高気温が低く、最低気温も低い日ほど高得点
+  const tempTrendScore = Math.max(0, Math.min(100,
+    ((-tempMax + 3) / 10 * 60) + ((-tempMin + 0) / 10 * 40)
+  ));
 
-  const total = (
-    snowScore  * weights.snow +
-    depthScore * weights.depth +
-    sunScore   * weights.sun +
-    tempScore  * weights.temp
-  );
+  // --- ⑥ 標高ボーナス ---
+  // 標高1000m=0, 2300m=100 で線形スケール
+  const elevScore = Math.min(Math.max((resort.elev - 1000) / 1300 * 100, 0), 100);
+
+  // --- ⑦ 風速ペナルティ（全モード共通で減点）---
+  // 10m/s以上から減点開始、20m/s以上で最大-40点
+  let windPenalty = 0;
+  if (windMax >= 20)      windPenalty = 40;
+  else if (windMax >= 15) windPenalty = 25;
+  else if (windMax >= 10) windPenalty = 12;
+
+  // --- 吹雪リスクペナルティ（強風 + 高雲量）---
+  const blizzardPenalty = (windMax >= 12 && cloud >= 70) ? 10 : 0;
+
+  // --- 加重合計 ---
+  const rawScore =
+    snowQualityScore * weights.snowQuality +
+    accumScore       * weights.accumSnow   +
+    depthScore       * weights.depth       +
+    sunScore         * weights.sun         +
+    tempTrendScore   * weights.temp        +
+    elevScore        * weights.elev;
+
+  const total = Math.max(0, Math.round(rawScore - windPenalty - blizzardPenalty));
 
   return {
-    total: Math.round(total),
-    snowfall: snowfall.toFixed(1),
-    depth: Math.round(depth),
-    cloud: Math.round(cloud),
-    tempMax: tempMax.toFixed(1),
-    tempMin: (d.temperature_2m_min?.[0] ?? 0).toFixed(1),
-    wind: Math.round(d.windspeed_10m_max?.[0] ?? 0),
-    precip: (d.precipitation_sum?.[0] ?? 0).toFixed(1),
-    snowScore, depthScore, sunScore, tempScore,
+    total,
+    snowfall:       snowfall.toFixed(1),
+    accumSnow:      accumSnow.toFixed(1),
+    depth:          Math.round(depth),
+    cloud:          Math.round(cloud),
+    tempMax:        tempMax.toFixed(1),
+    tempMin:        tempMin.toFixed(1),
+    wind:           Math.round(windMax),
+    precip:         precip.toFixed(1),
+    snowQualityScore: Math.round(snowQualityScore),
+    accumScore:     Math.round(accumScore),
+    depthScore:     Math.round(depthScore),
+    sunScore:       Math.round(sunScore),
+    tempTrendScore: Math.round(tempTrendScore),
+    elevScore:      Math.round(elevScore),
+    windPenalty,
+    blizzardPenalty,
   };
+}
+
+// ============================================================
+// 雪質ラベル
+// ============================================================
+function snowQualityLabel(tempMax, snowfall) {
+  if (parseFloat(snowfall) <= 0) return { label: '降雪なし', color: '#90a4ae' };
+  const t = parseFloat(tempMax);
+  if (t <= -8)  return { label: '🥶 超サラサラパウダー', color: '#81d4fa' };
+  if (t <= -3)  return { label: '❄️ サラサラパウダー',   color: '#4fc3f7' };
+  if (t <=  0)  return { label: '🌨️ ドライパウダー',     color: '#b3e5fc' };
+  if (t <=  3)  return { label: '💧 やや湿雪',           color: '#ffd54f' };
+  return           { label: '💦 重い湿雪',              color: '#ff8a65' };
 }
 
 // ============================================================
 // 推奨コメント生成
 // ============================================================
-function genComment(score, w) {
-  const { snowfall, depth, cloud, tempMax, wind } = w;
+function genComment(w, resort) {
   const parts = [];
+  const snow = parseFloat(w.snowfall);
+  const accum = parseFloat(w.accumSnow);
+  const wind = w.wind;
 
-  if (parseFloat(snowfall) >= 15) {
-    parts.push(`🌨️ 前夜からの新雪 <strong>${snowfall}cm</strong>！パウダー狙いに最高のコンディション`);
-  } else if (parseFloat(snowfall) >= 5) {
-    parts.push(`🌨️ 新雪 ${snowfall}cm 見込み。フレッシュなバーンが期待できます`);
-  } else {
-    parts.push(`☁️ 新雪は少なめ (${snowfall}cm)。圧雪ゲレンデでの滑走がメインになりそう`);
-  }
+  // 新雪コメント
+  if (snow >= 20)     parts.push(`🌨️ 大雪！新雪 <strong>${w.snowfall}cm</strong> — パウダー最高潮のコンディション`);
+  else if (snow >= 10) parts.push(`🌨️ 新雪 <strong>${w.snowfall}cm</strong>。フレッシュなパウダーが期待大`);
+  else if (snow >= 3)  parts.push(`🌨️ 新雪 ${w.snowfall}cm。朝イチならパウダー残ってる可能性あり`);
+  else                 parts.push(`新雪は少なめ (${w.snowfall}cm)。圧雪バーンでのクルーズがメイン`);
 
-  if (parseInt(depth) >= 150) {
-    parts.push(`積雪深 <strong>${depth}cm</strong> と豊富な下地があります`);
-  } else if (parseInt(depth) >= 80) {
-    parts.push(`積雪深 ${depth}cm、十分なベースがあります`);
-  } else {
-    parts.push(`積雪深 ${depth}cm — 早めのシーズンや雪不足の可能性あり`);
-  }
+  // 累積降雪
+  if (accum >= 30 && accum > snow + 5)
+    parts.push(`直近3日累計 <strong>${w.accumSnow}cm</strong> の降雪でベースも充実`);
 
-  if (parseInt(cloud) <= 30) {
-    parts.push(`☀️ 晴れ予報！山頂からの絶景が楽しめます`);
-  } else if (parseInt(cloud) <= 60) {
-    parts.push(`🌤️ 晴れ間あり。視界はまずまず`);
-  } else {
-    parts.push(`🌥️ 曇り・雪模様。視界に注意して滑走を`);
-  }
+  // 積雪深
+  if (w.depth >= 200)      parts.push(`積雪深 <strong>${w.depth}cm</strong>！下地は申し分なし`);
+  else if (w.depth >= 100) parts.push(`積雪深 ${w.depth}cm、十分なベースがあります`);
+  else if (w.depth < 50)   parts.push(`⚠️ 積雪深 ${w.depth}cm — 薄い可能性あり、ゲレンデ情報を事前確認して`);
 
-  if (parseInt(wind) >= 15) {
-    parts.push(`⚠️ 強風注意 (${wind}m/s)。リフト運休の可能性あり`);
-  }
+  // 天気
+  if (w.cloud <= 20)       parts.push(`☀️ 快晴予報！山頂からの絶景が楽しめます`);
+  else if (w.cloud <= 50)  parts.push(`🌤️ 晴れ間あり。視界良好`);
+  else if (w.cloud >= 80)  parts.push(`🌥️ 曇り〜雪模様。視界に注意`);
+
+  // 風速
+  if (wind >= 20)      parts.push(`🚨 強風警報 (${wind}m/s) — リフト運休の可能性が高い`);
+  else if (wind >= 15) parts.push(`⚠️ 強風注意 (${wind}m/s) — 上部リフトは運休の可能性あり`);
+  else if (wind >= 10) parts.push(`💨 やや風あり (${wind}m/s) — 防寒対策を`);
+
+  // 標高ボーナス
+  if (resort.elev >= 2000) parts.push(`🏔️ 標高 ${resort.elev.toLocaleString()}m の高所ゲレンデ — 雪質安定`);
 
   return parts.join('。');
 }
@@ -592,12 +680,14 @@ function genComment(score, w) {
 // ============================================================
 // 天気アイコン
 // ============================================================
-function weatherIcon(cloud, snow) {
-  if (parseFloat(snow) >= 10) return '🌨️';
-  if (parseInt(cloud) <= 20) return '☀️';
-  if (parseInt(cloud) <= 50) return '🌤️';
-  if (parseInt(cloud) <= 80) return '☁️';
-  return '❄️';
+function weatherIcon(cloud, snow, wind) {
+  if (wind >= 15 && cloud >= 70) return '🌪️';
+  if (parseFloat(snow) >= 15)    return '🌨️';
+  if (parseFloat(snow) >= 3)     return '❄️';
+  if (cloud <= 20)  return '☀️';
+  if (cloud <= 50)  return '🌤️';
+  if (cloud <= 80)  return '☁️';
+  return '🌥️';
 }
 
 // ============================================================
@@ -606,24 +696,32 @@ function weatherIcon(cloud, snow) {
 function renderCard(resort, rank, w) {
   const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
   const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-  const wicon = weatherIcon(w.cloud, w.snowfall);
-  const comment = genComment(w.total, w);
-  const pct = w.total;
+  const wicon = weatherIcon(w.cloud, w.snowfall, w.wind);
+  const comment = genComment(w, resort);
+  const sq = snowQualityLabel(w.tempMax, w.snowfall);
+  const windColor = w.wind >= 15 ? '#ef5350' : w.wind >= 10 ? '#ffb74d' : '#90a4ae';
+  const penaltyNote = (w.windPenalty > 0 || w.blizzardPenalty > 0)
+    ? `<span style="color:#ef5350;font-size:0.75rem;margin-left:8px;">▼ 風速ペナルティ -${w.windPenalty + w.blizzardPenalty}pt</span>` : '';
 
   return `
   <div class="resort-card ${rankClass}">
     <div class="card-top">
       <div class="rank-badge">${medal}</div>
       <div class="card-main">
-        <div class="resort-name">${resort.name} <span style="font-size:.75rem;color:var(--muted);">${wicon}</span></div>
+        <div class="resort-name">${resort.name} <span style="font-size:.8rem;margin-left:4px;">${wicon}</span></div>
         <div class="resort-sub">${resort.desc} ・ 標高 ${resort.elev.toLocaleString()}m</div>
+
         <div class="metrics">
           <div class="metric">
             <div class="metric-val" style="color:#81d4fa">${w.snowfall}cm</div>
-            <div class="metric-label">新雪量</div>
+            <div class="metric-label">当日新雪</div>
           </div>
           <div class="metric">
-            <div class="metric-val" style="color:#4fc3f7">${w.depth}cm</div>
+            <div class="metric-val" style="color:#4fc3f7">${w.accumSnow}cm</div>
+            <div class="metric-label">3日累計降雪</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" style="color:#29b6f6">${w.depth}cm</div>
             <div class="metric-label">積雪深</div>
           </div>
           <div class="metric">
@@ -631,18 +729,27 @@ function renderCard(resort, rank, w) {
             <div class="metric-label">最高気温</div>
           </div>
           <div class="metric">
+            <div class="metric-val" style="color:#b3e5fc">${w.tempMin}°C</div>
+            <div class="metric-label">最低気温</div>
+          </div>
+          <div class="metric">
             <div class="metric-val" style="color:#90a4ae">${w.cloud}%</div>
             <div class="metric-label">雲量</div>
           </div>
           <div class="metric">
-            <div class="metric-val" style="color:#ef9a9a">${w.wind}m/s</div>
+            <div class="metric-val" style="color:${windColor}">${w.wind}m/s</div>
             <div class="metric-label">最大風速</div>
           </div>
         </div>
-        <div class="score-bar-wrap">
-          <label>総合スコア <span style="color:var(--accent);font-weight:700">${pct}/100</span></label>
+
+        <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="background:rgba(255,255,255,0.07);border-radius:6px;padding:4px 10px;font-size:0.78rem;color:${sq.color};">${sq.label}</span>
+        </div>
+
+        <div class="score-bar-wrap" style="margin-top:12px;">
+          <label>総合スコア <span style="color:var(--accent);font-weight:700">${w.total}/100</span>${penaltyNote}</label>
           <div class="score-bar">
-            <div class="score-fill" style="width:${pct}%"></div>
+            <div class="score-fill" style="width:${Math.min(w.total,100)}%"></div>
           </div>
         </div>
         <div class="recommendation">${comment}</div>
@@ -680,7 +787,7 @@ async function fetchAndRank() {
     const scored = [];
     results.forEach((res, i) => {
       if (res.status === 'fulfilled') {
-        const w = calcScore(res.value, weights);
+        const w = calcScore(res.value, weights, targets[i]);
         scored.push({ resort: targets[i], weather: w });
       }
     });
