@@ -541,7 +541,7 @@ function calcScore(data, weights, resort) {
 
   // --- 基礎データ ---
   const snowfall  = daily.snowfall_sum?.[idx]       ?? 0;
-  const depth     = daily.snow_depth_max?.[idx]     ?? 0;
+  const depth     = (daily.snow_depth_max?.[idx]     ?? 0) * 100; // m→cm変換
   const cloud     = daily.cloudcover_mean?.[idx]    ?? 50;
   const tempMax   = daily.temperature_2m_max?.[idx] ?? 0;
   const tempMin   = daily.temperature_2m_min?.[idx] ?? -5;
