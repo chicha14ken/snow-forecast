@@ -348,7 +348,7 @@
 
 <header>
   <h1>❄️ <span>Snow</span> Forecast</h1>
-  <p>長野・新潟 ゲレンデ選びアシスタント — リアルタイム気象データで今日のベストを探す</p>
+  <p>長野・新潟・群馬 ゲレンデ選びアシスタント — リアルタイム気象データで今日のベストを探す</p>
 </header>
 
 <div class="controls" style="max-width:900px;margin:24px auto 12px;padding:0 16px;">
@@ -365,6 +365,7 @@
       <option value="nozawa">野沢・斑尾エリア</option>
       <option value="niigata">新潟エリア</option>
       <option value="myoko">妙高エリア</option>
+      <option value="gunma">群馬エリア</option>
     </select>
   </div>
   <div class="ctrl-group" style="min-width:220px;">
@@ -442,6 +443,12 @@ const RESORTS = [
   { id: 'myoko',     name: '妙高杉ノ原スキー場',  area: 'myoko',   lat: 36.937, lon: 138.209, elev: 1855, desc: '日本海寒波、極上パウダー' },
   { id: 'akakura',   name: '赤倉観光リゾート',    area: 'myoko',   lat: 36.916, lon: 138.202, elev: 1300, desc: 'コース多彩、眺望抜群' },
   { id: 'lakelands', name: '池の平温泉スキー場',  area: 'myoko',   lat: 36.960, lon: 138.218, elev: 900,  desc: '妙高の玄関口、初中級向け' },
+  // 群馬エリア
+  { id: 'kusatsu',   name: '草津温泉スキー場',    area: 'gunma',   lat: 36.618, lon: 138.596, elev: 2010, desc: '最長8km・標高差926m、ロングラン' },
+  { id: 'manza',     name: '万座温泉スキー場',    area: 'gunma',   lat: 36.649, lon: 138.421, elev: 1800, desc: '「粉雪の万座」極上パウダー' },
+  { id: 'kawaba',    name: '川場スキー場',         area: 'gunma',   lat: 36.751, lon: 139.016, elev: 1560, desc: '非圧雪エリア充実、日帰り向け' },
+  { id: 'marunuma',  name: '丸沼高原スキー場',    area: 'gunma',   lat: 36.862, lon: 139.202, elev: 2000, desc: '11月〜5月ロングシーズン、標高2000m' },
+  { id: 'oze',       name: '尾瀬岩鞍スキー場',    area: 'gunma',   lat: 36.786, lon: 139.155, elev: 1600, desc: '関東最大級、多彩なコース' },
 ];
 
 // ============================================================
