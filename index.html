@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snow Forecast – ゲレンデ選びアシスタント</title>
+  <style>
+    :root {
+      --bg: #0d1b2a;
+      --surface: #1b2d42;
+      --card: #1e3453;
+      --accent: #4fc3f7;
+      --accent2: #81d4fa;
+      --gold: #ffd54f;
+      --silver: #b0bec5;
+      --bronze: #ffb74d;
+      --green: #66bb6a;
+      --red: #ef5350;
+      --text: #e0f2fe;
+      --muted: #90a4ae;
+      --border: rgba(79,195,247,0.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, #0a1628 0%, #1a3a6b 50%, #0d2040 100%);
+      padding: 24px 20px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 l4 8 h8 l-6 6 2 8-8-5-8 5 2-8-6-6 8 0z' fill='rgba(79,195,247,0.05)'/%3E%3C/svg%3E") repeat;
+      pointer-events: none;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      position: relative;
+    }
+    header h1 span { color: var(--accent); }
+    header p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      position: relative;
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .ctrl-group {
+      flex: 1;
+      min-width: 160px;
+    }
+    .ctrl-group label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .ctrl-group input[type=date],
+    .ctrl-group select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .ctrl-group input[type=date]:focus,
+    .ctrl-group select:focus { border-color: var(--accent); }
+
+    /* mode toggle */
+    .mode-toggle {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.88rem;
+      text-align: center;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #0a1628;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* weights panel */
+    .weights-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      max-width: 900px;
+      margin: 0 auto 16px;
+      padding-left: 16px; padding-right: 16px;
+    }
+    .weights-panel h3 {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .sliders {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .slider-item label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .slider-item label span { color: var(--accent); font-weight: 700; }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* search btn */
+    .search-btn {
+      padding: 11px 28px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: #0a1628;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      white-space: nowrap;
+    }
+    .search-btn:active { transform: scale(0.97); }
+    .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== LOADING ===== */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      display: none;
+    }
+    .loading.show { display: block; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== RESULTS ===== */
+    .results-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 16px 40px;
+    }
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .results-header h2 { font-size: 1rem; color: var(--accent2); }
+    .results-date { font-size: 0.8rem; color: var(--muted); }
+
+    .resort-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 14px;
+      transition: transform .15s, box-shadow .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .resort-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+    .resort-card.rank-1 { border-color: var(--gold); }
+    .resort-card.rank-2 { border-color: var(--silver); }
+    .resort-card.rank-3 { border-color: var(--bronze); }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .rank-badge {
+      font-size: 1.6rem;
+      font-weight: 900;
+      min-width: 44px;
+      text-align: center;
+      line-height: 1;
+    }
+    .rank-1 .rank-badge { color: var(--gold); }
+    .rank-2 .rank-badge { color: var(--silver); }
+    .rank-3 .rank-badge { color: var(--bronze); }
+    .rank-other .rank-badge { color: var(--muted); font-size: 1.2rem; }
+
+    .card-main { flex: 1; }
+    .resort-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .resort-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .metric {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 6px 12px;
+      text-align: center;
+      min-width: 80px;
+    }
+    .metric-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .score-bar-wrap {
+      margin-top: 14px;
+    }
+    .score-bar-wrap label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .score-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.6s ease;
+    }
+
+    .recommendation {
+      margin-top: 12px;
+      background: rgba(79,195,247,0.08);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: var(--accent2);
+      line-height: 1.5;
+    }
+
+    .weather-icons {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .wicon {
+      font-size: 1.3rem;
+    }
+
+    /* error */
+    .error-msg {
+      background: rgba(239,83,80,0.1);
+      border: 1px solid var(--red);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: var(--red);
+      text-align: center;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    /* empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .emoji { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.3rem; }
+      .card-top { flex-direction: column; gap: 8px; }
+      .rank-badge { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>❄️ <span>Snow</span> Forecast</h1>
+  <p>長野・新潟 ゲレンデ選びアシスタント — リアルタイム気象データで今日のベストを探す</p>
+</header>
+
+<div class="controls" style="max-width:900px;margin:24px auto 12px;padding:0 16px;">
+  <div class="ctrl-group">
+    <label>📅 日付</label>
+    <input type="date" id="targetDate" />
+  </div>
+  <div class="ctrl-group">
+    <label>🏔️ エリア</label>
+    <select id="areaFilter">
+      <option value="all">全エリア</option>
+      <option value="hakuba">白馬エリア</option>
+      <option value="shiga">志賀高原エリア</option>
+      <option value="nozawa">野沢・斑尾エリア</option>
+      <option value="niigata">新潟エリア</option>
+      <option value="myoko">妙高エリア</option>
+    </select>
+  </div>
+  <div class="ctrl-group" style="min-width:220px;">
+    <label>🎯 モード選択</label>
+    <div class="mode-toggle">
+      <div class="mode-btn active" data-mode="powder" onclick="setMode('powder')">🌨️ パウダー重視</div>
+      <div class="mode-btn" data-mode="sunny" onclick="setMode('sunny')">☀️ 晴天重視</div>
+      <div class="mode-btn" data-mode="custom" onclick="setMode('custom')">⚙️ カスタム</div>
+    </div>
+  </div>
+  <div>
+    <button class="search-btn" id="searchBtn" onclick="fetchAndRank()">🔍 ゲレンデを探す</button>
+  </div>
+</div>
+
+<!-- Custom weights panel -->
+<div class="weights-panel" id="weightsPanel" style="display:none;max-width:900px;margin:0 16px 16px;padding:16px;">
+  <h3>⚙️ スコア重み設定 (合計が自動調整されます)</h3>
+  <div class="sliders">
+    <div class="slider-item">
+      <label>🌨️ 新雪量 <span id="wSnowLabel">40</span>%</label>
+      <input type="range" id="wSnow" min="0" max="100" value="40" oninput="updateLabel('wSnow','wSnowLabel')" />
+    </div>
+    <div class="slider-item">
+      <label>📦 積雪深 <span id="wDepthLabel">20</span>%</label>
+      <input type="range" id="wDepth" min="0" max="100" value="20" oninput="updateLabel('wDepth','wDepthLabel')" />
+    </div>
+    <div class="slider-item">
+      <label>☀️ 晴天度 <span id="wSunLabel">20</span>%</label>
+      <input type="range" id="wSun" min="0" max="100" value="20" oninput="updateLabel('wSun','wSunLabel')" />
+    </div>
+    <div class="slider-item">
+      <label>🌡️ 気温 (低い方がGood) <span id="wTempLabel">20</span>%</label>
+      <input type="range" id="wTemp" min="0" max="100" value="20" oninput="updateLabel('wTemp','wTempLabel')" />
+    </div>
+  </div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>ゲレンデの気象データを取得中…</p>
+</div>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="results-wrapper" id="resultsWrapper">
+  <div class="empty-state">
+    <div class="emoji">🏔️</div>
+    <p>日付とモードを選んで「ゲレンデを探す」ボタンを押してください</p>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ゲレンデデータ（座標・標高・エリア）
+// ============================================================
+const RESORTS = [
+  // 白馬エリア
+  { id: 'happo',     name: '白馬八方尾根',       area: 'hakuba',  lat: 36.698, lon: 137.772, elev: 1831, desc: '北アルプス直下のパウダー聖地' },
+  { id: 'goryu',     name: 'エイブル白馬五竜',    area: 'hakuba',  lat: 36.679, lon: 137.778, elev: 1515, desc: '47と連結、広大なゲレンデ' },
+  { id: 'cortina',   name: '白馬コルチナ',        area: 'hakuba',  lat: 36.763, lon: 137.832, elev: 1430, desc: '天然雪100%、深いパウダー' },
+  { id: 'iwatake',   name: '白馬岩岳',            area: 'hakuba',  lat: 36.720, lon: 137.813, elev: 1289, desc: '360度パノラマ絶景' },
+  // 志賀高原エリア
+  { id: 'yokote',    name: '志賀高原 横手山',     area: 'shiga',   lat: 36.759, lon: 138.513, elev: 2307, desc: '日本最高所リフト、霧氷が美しい' },
+  { id: 'yakebi',    name: '志賀高原 焼額山',     area: 'shiga',   lat: 36.718, lon: 138.480, elev: 2009, desc: 'W杯開催実績あり、急斜面が揃う' },
+  { id: 'ryuoo',    name: '竜王スキーパーク',     area: 'shiga',   lat: 36.782, lon: 138.392, elev: 1930, desc: '世界最大級ロープウェイ、絶景' },
+  // 野沢・斑尾エリア
+  { id: 'nozawa',    name: '野沢温泉スキー場',    area: 'nozawa',  lat: 36.929, lon: 138.447, elev: 1650, desc: '46コース、温泉も楽しめる' },
+  { id: 'madarao',   name: '斑尾高原スキー場',    area: 'nozawa',  lat: 36.977, lon: 138.375, elev: 1382, desc: 'ツリーラン日本一' },
+  // 新潟エリア
+  { id: 'naeba',     name: '苗場スキー場',        area: 'niigata', lat: 36.853, lon: 138.663, elev: 1518, desc: '大斜面が名物、豊富な積雪' },
+  { id: 'kagura',    name: 'かぐらスキー場',      area: 'niigata', lat: 36.862, lon: 138.704, elev: 1845, desc: '最長シーズン、深雪に定評' },
+  { id: 'joetsu',    name: '上越国際スキー場',    area: 'niigata', lat: 37.019, lon: 138.777, elev: 900,  desc: '4ゾーン、新幹線アクセス良好' },
+  // 妙高エリア
+  { id: 'myoko',     name: '妙高杉ノ原スキー場',  area: 'myoko',   lat: 36.937, lon: 138.209, elev: 1855, desc: '日本海寒波、極上パウダー' },
+  { id: 'akakura',   name: '赤倉観光リゾート',    area: 'myoko',   lat: 36.916, lon: 138.202, elev: 1300, desc: 'コース多彩、眺望抜群' },
+  { id: 'lakelands', name: '池の平温泉スキー場',  area: 'myoko',   lat: 36.960, lon: 138.218, elev: 900,  desc: '妙高の玄関口、初中級向け' },
+];
+
+// ============================================================
+// 状態
+// ============================================================
+let currentMode = 'powder';
+
+// ============================================================
+// 初期化
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  document.getElementById('targetDate').value = today.toISOString().split('T')[0];
+});
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+  document.getElementById('weightsPanel').style.display = mode === 'custom' ? 'block' : 'none';
+}
+
+function updateLabel(sliderId, labelId) {
+  document.getElementById(labelId).textContent = document.getElementById(sliderId).value;
+}
+
+// ============================================================
+// 重み取得
+// ============================================================
+function getWeights() {
+  if (currentMode === 'powder') {
+    return { snow: 0.50, depth: 0.30, sun: 0.05, temp: 0.15 };
+  } else if (currentMode === 'sunny') {
+    return { snow: 0.05, depth: 0.15, sun: 0.60, temp: 0.20 };
+  } else {
+    const wSnow  = parseInt(document.getElementById('wSnow').value);
+    const wDepth = parseInt(document.getElementById('wDepth').value);
+    const wSun   = parseInt(document.getElementById('wSun').value);
+    const wTemp  = parseInt(document.getElementById('wTemp').value);
+    const total  = wSnow + wDepth + wSun + wTemp || 1;
+    return { snow: wSnow/total, depth: wDepth/total, sun: wSun/total, temp: wTemp/total };
+  }
+}
+
+// ============================================================
+// Open-Meteo APIからデータ取得
+// ============================================================
+async function fetchWeather(resort, date) {
+  const url = `https://api.open-meteo.com/v1/forecast?`
+    + `latitude=${resort.lat}&longitude=${resort.lon}`
+    + `&daily=snowfall_sum,snow_depth_max,precipitation_sum,temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max`
+    + `&hourly=snowfall,snow_depth,temperature_2m,cloudcover,windspeed_10m`
+    + `&timezone=Asia%2FTokyo`
+    + `&start_date=${date}&end_date=${date}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+// ============================================================
+// スコア計算
+// ============================================================
+function calcScore(data, weights) {
+  const d = data.daily;
+
+  // 新雪量スコア（0-100）: 30cm以上で満点
+  const snowfall = d.snowfall_sum?.[0] ?? 0;
+  const snowScore = Math.min(snowfall / 30 * 100, 100);
+
+  // 積雪深スコア（0-100）: 200cm以上で満点
+  const depth = d.snow_depth_max?.[0] ?? 0;
+  const depthScore = Math.min(depth / 200 * 100, 100);
+
+  // 晴天スコア（0-100）: cloudcoverが低いほど高い
+  const cloud = d.cloudcover_mean?.[0] ?? 50;
+  const sunScore = Math.max(0, 100 - cloud);
+
+  // 気温スコア（0-100）: パウダー向けは低温が良い
+  // 最高気温が-5℃以下で満点、5℃以上で0点
+  const tempMax = d.temperature_2m_max?.[0] ?? 0;
+  const tempScore = Math.max(0, Math.min(100, (-tempMax + 5) / 10 * 100));
+
+  const total = (
+    snowScore  * weights.snow +
+    depthScore * weights.depth +
+    sunScore   * weights.sun +
+    tempScore  * weights.temp
+  );
+
+  return {
+    total: Math.round(total),
+    snowfall: snowfall.toFixed(1),
+    depth: Math.round(depth),
+    cloud: Math.round(cloud),
+    tempMax: tempMax.toFixed(1),
+    tempMin: (d.temperature_2m_min?.[0] ?? 0).toFixed(1),
+    wind: Math.round(d.windspeed_10m_max?.[0] ?? 0),
+    precip: (d.precipitation_sum?.[0] ?? 0).toFixed(1),
+    snowScore, depthScore, sunScore, tempScore,
+  };
+}
+
+// ============================================================
+// 推奨コメント生成
+// ============================================================
+function genComment(score, w) {
+  const { snowfall, depth, cloud, tempMax, wind } = w;
+  const parts = [];
+
+  if (parseFloat(snowfall) >= 15) {
+    parts.push(`🌨️ 前夜からの新雪 <strong>${snowfall}cm</strong>！パウダー狙いに最高のコンディション`);
+  } else if (parseFloat(snowfall) >= 5) {
+    parts.push(`🌨️ 新雪 ${snowfall}cm 見込み。フレッシュなバーンが期待できます`);
+  } else {
+    parts.push(`☁️ 新雪は少なめ (${snowfall}cm)。圧雪ゲレンデでの滑走がメインになりそう`);
+  }
+
+  if (parseInt(depth) >= 150) {
+    parts.push(`積雪深 <strong>${depth}cm</strong> と豊富な下地があります`);
+  } else if (parseInt(depth) >= 80) {
+    parts.push(`積雪深 ${depth}cm、十分なベースがあります`);
+  } else {
+    parts.push(`積雪深 ${depth}cm — 早めのシーズンや雪不足の可能性あり`);
+  }
+
+  if (parseInt(cloud) <= 30) {
+    parts.push(`☀️ 晴れ予報！山頂からの絶景が楽しめます`);
+  } else if (parseInt(cloud) <= 60) {
+    parts.push(`🌤️ 晴れ間あり。視界はまずまず`);
+  } else {
+    parts.push(`🌥️ 曇り・雪模様。視界に注意して滑走を`);
+  }
+
+  if (parseInt(wind) >= 15) {
+    parts.push(`⚠️ 強風注意 (${wind}m/s)。リフト運休の可能性あり`);
+  }
+
+  return parts.join('。');
+}
+
+// ============================================================
+// 天気アイコン
+// ============================================================
+function weatherIcon(cloud, snow) {
+  if (parseFloat(snow) >= 10) return '🌨️';
+  if (parseInt(cloud) <= 20) return '☀️';
+  if (parseInt(cloud) <= 50) return '🌤️';
+  if (parseInt(cloud) <= 80) return '☁️';
+  return '❄️';
+}
+
+// ============================================================
+// カード描画
+// ============================================================
+function renderCard(resort, rank, w) {
+  const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+  const wicon = weatherIcon(w.cloud, w.snowfall);
+  const comment = genComment(w.total, w);
+  const pct = w.total;
+
+  return `
+  <div class="resort-card ${rankClass}">
+    <div class="card-top">
+      <div class="rank-badge">${medal}</div>
+      <div class="card-main">
+        <div class="resort-name">${resort.name} <span style="font-size:.75rem;color:var(--muted);">${wicon}</span></div>
+        <div class="resort-sub">${resort.desc} ・ 標高 ${resort.elev.toLocaleString()}m</div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-val" style="color:#81d4fa">${w.snowfall}cm</div>
+            <div class="metric-label">新雪量</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" style="color:#4fc3f7">${w.depth}cm</div>
+            <div class="metric-label">積雪深</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" style="color:#ffd54f">${w.tempMax}°C</div>
+            <div class="metric-label">最高気温</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" style="color:#90a4ae">${w.cloud}%</div>
+            <div class="metric-label">雲量</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val" style="color:#ef9a9a">${w.wind}m/s</div>
+            <div class="metric-label">最大風速</div>
+          </div>
+        </div>
+        <div class="score-bar-wrap">
+          <label>総合スコア <span style="color:var(--accent);font-weight:700">${pct}/100</span></label>
+          <div class="score-bar">
+            <div class="score-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="recommendation">${comment}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// メイン処理
+// ============================================================
+async function fetchAndRank() {
+  const date = document.getElementById('targetDate').value;
+  if (!date) { alert('日付を選択してください'); return; }
+
+  const areaFilter = document.getElementById('areaFilter').value;
+  const targets = areaFilter === 'all' ? RESORTS : RESORTS.filter(r => r.area === areaFilter);
+
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('errorMsg').classList.remove('show');
+  document.getElementById('resultsWrapper').innerHTML = '';
+
+  try {
+    const weights = getWeights();
+
+    // 並列でAPI呼び出し
+    const results = await Promise.allSettled(
+      targets.map(r => fetchWeather(r, date))
+    );
+
+    // スコア計算
+    const scored = [];
+    results.forEach((res, i) => {
+      if (res.status === 'fulfilled') {
+        const w = calcScore(res.value, weights);
+        scored.push({ resort: targets[i], weather: w });
+      }
+    });
+
+    if (scored.length === 0) throw new Error('データを取得できませんでした');
+
+    // ランキング
+    scored.sort((a, b) => b.weather.total - a.weather.total);
+
+    // レンダリング
+    const modeLabel = currentMode === 'powder' ? '🌨️ パウダー重視' : currentMode === 'sunny' ? '☀️ 晴天重視' : '⚙️ カスタム';
+    const dateStr = new Date(date + 'T00:00:00').toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+
+    let html = `
+      <div class="results-header">
+        <h2>${modeLabel} ランキング</h2>
+        <span class="results-date">📅 ${dateStr} / ${scored.length}ゲレンデ比較</span>
+      </div>`;
+
+    scored.forEach((s, i) => {
+      html += renderCard(s.resort, i + 1, s.weather);
+    });
+
+    document.getElementById('resultsWrapper').innerHTML = html;
+
+  } catch (e) {
+    document.getElementById('errorMsg').textContent = `⚠️ エラー: ${e.message}`;
+    document.getElementById('errorMsg').classList.add('show');
+    document.getElementById('resultsWrapper').innerHTML = '';
+  } finally {
+    document.getElementById('loading').classList.remove('show');
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
