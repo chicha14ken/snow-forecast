@@ -511,56 +511,115 @@ function getWeights() {
 }
 
 // ============================================================
-// Open-Meteo API — 当日 + 直近2日分を取得
+// 日付ユーティリティ
+// ============================================================
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+// ============================================================
+// Open-Meteo API — 2ステップ取得
+//   過去2日: historical-forecast-api（実績値）
+//   当日   : forecast API（予報値）
+//   ※ daily_units を読んで snowfall・snow_depth の単位を自動判定
 // ============================================================
 async function fetchWeather(resort, date) {
-  // 累積降雪用に2日前から取得
-  const from = new Date(date);
-  from.setDate(from.getDate() - 2);
-  const startDate = from.toISOString().split('T')[0];
+  const DAILY_VARS = 'snowfall_sum,snow_depth_max,precipitation_sum,'
+    + 'temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max';
+  const base = `latitude=${resort.lat}&longitude=${resort.lon}`
+    + `&daily=${DAILY_VARS}&timezone=Asia%2FTokyo`;
 
-  const url = `https://api.open-meteo.com/v1/forecast?`
-    + `latitude=${resort.lat}&longitude=${resort.lon}`
-    + `&daily=snowfall_sum,snow_depth_max,precipitation_sum,`
-    + `temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max`
-    + `&hourly=temperature_2m,cloudcover`
-    + `&timezone=Asia%2FTokyo`
-    + `&start_date=${startDate}&end_date=${date}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
+  const yesterday  = addDays(date, -1);
+  const twoDaysAgo = addDays(date, -2);
+
+  // 過去2日: Historical Forecast API（当日含む予報より精度が高い）
+  const histUrl = `https://historical-forecast-api.open-meteo.com/v1/forecast?`
+    + `${base}&start_date=${twoDaysAgo}&end_date=${yesterday}`;
+
+  // 当日: 通常 Forecast API
+  const forecastUrl = `https://api.open-meteo.com/v1/forecast?`
+    + `${base}&start_date=${date}&end_date=${date}`;
+
+  const [histRes, forecastRes] = await Promise.all([
+    fetch(histUrl),
+    fetch(forecastUrl),
+  ]);
+  if (!forecastRes.ok) throw new Error(`Forecast API error: ${forecastRes.status}`);
+
+  const forecastData = await forecastRes.json();
+  let histData = null;
+  if (histRes.ok) {
+    histData = await histRes.json();
+  }
+
+  // 単位を daily_units から読み取る
+  // snowfall_sum: "cm" or "mm" → cm に統一
+  // snow_depth_max: "m" or "cm" → cm に統一
+  function toSnowfallCm(val, units) {
+    if (val == null) return 0;
+    return units === 'mm' ? val / 10 : val; // mmならcmに変換
+  }
+  function toDepthCm(val, units) {
+    if (val == null) return 0;
+    return units === 'm' ? val * 100 : val; // mならcmに変換
+  }
+
+  const fu = forecastData.daily_units ?? {};
+  const sfUnit    = fu.snowfall_sum    ?? 'cm';
+  const depthUnit = fu.snow_depth_max  ?? 'm';
+
+  // 当日データ（forecastから）
+  const fd = forecastData.daily;
+  const todaySnow  = toSnowfallCm(fd.snowfall_sum?.[0],   sfUnit);
+  const todayDepth = toDepthCm(   fd.snow_depth_max?.[0], depthUnit);
+
+  // 過去2日データ（histから）
+  let histSnowDay1 = 0, histSnowDay2 = 0, histDepth = 0;
+  if (histData) {
+    const hu = histData.daily_units ?? {};
+    const hSfUnit    = hu.snowfall_sum   ?? 'cm';
+    const hDepthUnit = hu.snow_depth_max ?? 'm';
+    const hd = histData.daily;
+    // hd.time = [twoDaysAgo, yesterday]
+    histSnowDay2 = toSnowfallCm(hd.snowfall_sum?.[0], hSfUnit);   // 2日前
+    histSnowDay1 = toSnowfallCm(hd.snowfall_sum?.[1], hSfUnit);   // 昨日
+    // 積雪深は一番新しい（昨日）の値をベースに使う
+    histDepth = toDepthCm(hd.snow_depth_max?.[1], hDepthUnit)
+              || toDepthCm(hd.snow_depth_max?.[0], hDepthUnit);
+  }
+
+  // 積雪深: 予報が0なら過去実績を優先
+  const bestDepth = (todayDepth > 0) ? todayDepth : histDepth;
+
+  return {
+    todaySnow,
+    accumSnow: histSnowDay2 + histSnowDay1 + todaySnow,
+    depth: bestDepth,
+    cloud:   fd.cloudcover_mean?.[0]    ?? 50,
+    tempMax: fd.temperature_2m_max?.[0] ?? 0,
+    tempMin: fd.temperature_2m_min?.[0] ?? -5,
+    windMax: fd.windspeed_10m_max?.[0]  ?? 0,
+    precip:  fd.precipitation_sum?.[0]  ?? 0,
+  };
 }
 
 // ============================================================
 // スコア計算（全7要素）
 // ============================================================
-function calcScore(data, weights, resort) {
-  const daily = data.daily;
-  // APIは [2日前, 1日前, 当日] の3要素を返す（startDateから3日分）
-  const idx = daily.time.length - 1; // 当日は末尾
-
-  // --- 基礎データ ---
-  const snowfall  = daily.snowfall_sum?.[idx]       ?? 0;
-  const depth     = (daily.snow_depth_max?.[idx]     ?? 0) * 100; // m→cm変換
-  const cloud     = daily.cloudcover_mean?.[idx]    ?? 50;
-  const tempMax   = daily.temperature_2m_max?.[idx] ?? 0;
-  const tempMin   = daily.temperature_2m_min?.[idx] ?? -5;
-  const windMax   = daily.windspeed_10m_max?.[idx]  ?? 0;
-  const precip    = daily.precipitation_sum?.[idx]  ?? 0;
+function calcScore(w, weights, resort) {
+  const { todaySnow, accumSnow, depth, cloud, tempMax, tempMin, windMax } = w;
 
   // --- ① 雪質指数（気温×降雪の組み合わせ）---
-  // 降雪があり気温が低いほどサラサラ。降雪なし or 高温はスコア低
   let snowQualityScore = 0;
-  if (snowfall > 0) {
-    // 気温が低いほど良質（-10℃以下=100点、0℃=50点、+5℃=0点）
+  if (todaySnow > 0) {
     const tempFactor = Math.max(0, Math.min(100, (-tempMax + 5) / 15 * 100));
-    // 降雪量（15cm以上で満点）
-    const snowFactor = Math.min(snowfall / 15 * 100, 100);
-    snowQualityScore = (tempFactor * 0.6 + snowFactor * 0.4);
+    const snowFactor = Math.min(todaySnow / 15 * 100, 100);
+    snowQualityScore = tempFactor * 0.6 + snowFactor * 0.4;
   }
 
   // --- ② 累積降雪スコア（直近3日合計）---
-  const accumSnow = (daily.snowfall_sum ?? []).reduce((s, v) => s + (v ?? 0), 0);
   // 50cm以上で満点
   const accumScore = Math.min(accumSnow / 50 * 100, 100);
 
@@ -572,18 +631,14 @@ function calcScore(data, weights, resort) {
   const sunScore = Math.max(0, 100 - cloud);
 
   // --- ⑤ 気温トレンドスコア ---
-  // 朝晩の冷え込み（最低気温）と日中（最高気温）の差で「パウダー持ち」を評価
-  // 最高気温が低く、最低気温も低い日ほど高得点
   const tempTrendScore = Math.max(0, Math.min(100,
     ((-tempMax + 3) / 10 * 60) + ((-tempMin + 0) / 10 * 40)
   ));
 
   // --- ⑥ 標高ボーナス ---
-  // 標高1000m=0, 2300m=100 で線形スケール
   const elevScore = Math.min(Math.max((resort.elev - 1000) / 1300 * 100, 0), 100);
 
   // --- ⑦ 風速ペナルティ（全モード共通で減点）---
-  // 10m/s以上から減点開始、20m/s以上で最大-40点
   let windPenalty = 0;
   if (windMax >= 20)      windPenalty = 40;
   else if (windMax >= 15) windPenalty = 25;
@@ -605,20 +660,20 @@ function calcScore(data, weights, resort) {
 
   return {
     total,
-    snowfall:       snowfall.toFixed(1),
-    accumSnow:      accumSnow.toFixed(1),
-    depth:          Math.round(depth),
-    cloud:          Math.round(cloud),
-    tempMax:        tempMax.toFixed(1),
-    tempMin:        tempMin.toFixed(1),
-    wind:           Math.round(windMax),
-    precip:         precip.toFixed(1),
+    snowfall:         w.todaySnow.toFixed(1),
+    accumSnow:        w.accumSnow.toFixed(1),
+    depth:            Math.round(w.depth),
+    cloud:            Math.round(cloud),
+    tempMax:          tempMax.toFixed(1),
+    tempMin:          tempMin.toFixed(1),
+    wind:             Math.round(windMax),
+    precip:           (w.precip ?? 0).toFixed(1),
     snowQualityScore: Math.round(snowQualityScore),
-    accumScore:     Math.round(accumScore),
-    depthScore:     Math.round(depthScore),
-    sunScore:       Math.round(sunScore),
-    tempTrendScore: Math.round(tempTrendScore),
-    elevScore:      Math.round(elevScore),
+    accumScore:       Math.round(accumScore),
+    depthScore:       Math.round(depthScore),
+    sunScore:         Math.round(sunScore),
+    tempTrendScore:   Math.round(tempTrendScore),
+    elevScore:        Math.round(elevScore),
     windPenalty,
     blizzardPenalty,
   };
@@ -787,6 +842,7 @@ async function fetchAndRank() {
     const scored = [];
     results.forEach((res, i) => {
       if (res.status === 'fulfilled') {
+        // fetchWeatherが整形済みオブジェクトを返すのでそのままcalcScoreへ
         const w = calcScore(res.value, weights, targets[i]);
         scored.push({ resort: targets[i], weather: w });
       }
