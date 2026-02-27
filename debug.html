@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>API Debug</title>
+<style>
+  body { font-family: monospace; background:#111; color:#0f0; padding:20px; }
+  pre { background:#1a1a1a; padding:12px; border-radius:8px; overflow:auto; white-space:pre-wrap; word-break:break-all; }
+  button { background:#4fc3f7; color:#000; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; margin:4px; }
+  h2 { color:#4fc3f7; margin-top:20px; }
+  .ok { color:#66bb6a; } .err { color:#ef5350; }
+</style>
+</head>
+<body>
+<h1>🔍 Open-Meteo API デバッグ</h1>
+<p>白馬八方尾根（lat:36.677, lon:137.762, elev:1831m）でテスト</p>
+
+<button onclick="testForecast()">① forecast API（当日）</button>
+<button onclick="testHistorical()">② historical API（過去2日）</button>
+<button onclick="testForecastNoElev()">③ forecast API（elevation=なし）</button>
+<button onclick="testArchive()">④ archive API（過去実績）</button>
+<button onclick="testAll()">▶ 全部テスト</button>
+
+<div id="out"></div>
+
+<script>
+const LAT = 36.677, LON = 137.762, ELEV = 1831;
+const VARS = 'snowfall_sum,snow_depth_max,precipitation_sum,temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max';
+
+function getToday() {
+  const now = new Date();
+  const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+  return jst.toISOString().split('T')[0];
+}
+function addDays(d, n) {
+  const dt = new Date(d + 'T00:00:00');
+  dt.setDate(dt.getDate() + n);
+  return dt.toISOString().split('T')[0];
+}
+
+function log(title, content, isErr) {
+  const out = document.getElementById('out');
+  out.innerHTML += `<h2>${title}</h2><pre class="${isErr?'err':'ok'}">${content}</pre>`;
+}
+
+async function fetchAndLog(title, url) {
+  log(title + ' — URL', url);
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch(e) { parsed = text; }
+
+    // 重要な値だけ抽出
+    if (parsed && parsed.daily) {
+      const d = parsed.daily;
+      const u = parsed.daily_units || {};
+      const summary = {
+        units: u,
+        snowfall_sum: d.snowfall_sum,
+        snow_depth_max: d.snow_depth_max,
+        temperature_2m_max: d.temperature_2m_max,
+        cloudcover_mean: d.cloudcover_mean,
+        time: d.time,
+      };
+      log(title + ' — SUMMARY', JSON.stringify(summary, null, 2));
+      log(title + ' — FULL JSON', JSON.stringify(parsed, null, 2));
+    } else {
+      log(title + ' — RESPONSE (' + res.status + ')', JSON.stringify(parsed, null, 2), !res.ok);
+    }
+  } catch(e) {
+    log(title + ' — ERROR', e.message, true);
+  }
+}
+
+async function testForecast() {
+  const today = getToday();
+  await fetchAndLog(
+    '① forecast（当日・elevation付き）',
+    `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&elevation=${ELEV}&daily=${VARS}&timezone=Asia%2FTokyo&start_date=${today}&end_date=${today}`
+  );
+}
+
+async function testHistorical() {
+  const today = getToday();
+  const d1 = addDays(today, -2);
+  const d2 = addDays(today, -1);
+  await fetchAndLog(
+    '② historical-forecast（過去2日・elevation付き）',
+    `https://historical-forecast-api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&elevation=${ELEV}&daily=${VARS}&timezone=Asia%2FTokyo&start_date=${d1}&end_date=${d2}`
+  );
+}
+
+async function testForecastNoElev() {
+  const today = getToday();
+  await fetchAndLog(
+    '③ forecast（elevation=なし）',
+    `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=${VARS}&timezone=Asia%2FTokyo&start_date=${today}&end_date=${today}`
+  );
+}
+
+async function testArchive() {
+  const today = getToday();
+  const d1 = addDays(today, -5);
+  const d2 = addDays(today, -1);
+  await fetchAndLog(
+    '④ archive API（過去5日）',
+    `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}&daily=${VARS}&timezone=Asia%2FTokyo&start_date=${d1}&end_date=${d2}`
+  );
+}
+
+async function testAll() {
+  document.getElementById('out').innerHTML = '';
+  await testForecast();
+  await testHistorical();
+  await testForecastNoElev();
+  await testArchive();
+}
+</script>
+</body>
+</html>
