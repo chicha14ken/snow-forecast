@@ -395,6 +395,7 @@ const RESORTS = [
 // ============================================================
 // 状態
 // ============================================================
+const DEBUG = false;
 let currentMode = 'powder';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -451,30 +452,31 @@ function addDays(s, n) {
 //
 // 戦略:
 //   1) historical-forecast-api で過去8日 〜 当日 を取得
-//      → 降雪量(過去2日) + 積雪深(最新値) + 当日気象
+//      → 降雪量(過去2日) + 当日気象フォールバック
 //   2) forecast-api で当日〜翌日 を取得
 //      → 当日の降雪予報・気象（forecast の方が当日予報精度が高い）
 //
 // 積雪深の取り扱い:
-//   Open-Meteo の snow_depth_max はモデル推計値(ERA5/GFS等)のため
-//   実際のゲレンデ積雪と差がある場合がある。
-//   そのため「モデル推計値」として表示し、
-//   7日間の時系列から最新の非ゼロ値を採用する。
+//   Open-Meteo forecast API の hourly=snow_depth (m) を利用。
+//   JST 06:00-15:00 の中央値で外れ値を抑え、
+//   取れない場合は当日最終の有効値を使う。
 // ============================================================
 async function fetchWeather(resort, date) {
-  const VARS = 'snowfall_sum,snow_depth_max,precipitation_sum,'
+  const VARS = 'snowfall_sum,precipitation_sum,'
     + 'temperature_2m_max,temperature_2m_min,cloudcover_mean,windspeed_10m_max';
 
   const base = `latitude=${resort.lat}&longitude=${resort.lon}`
     + `&elevation=${resort.elev}&daily=${VARS}&timezone=Asia%2FTokyo`;
 
   const d7ago = addDays(date, -7);
-  const d1ago = addDays(date, -1);
 
   // 2つのAPIを並列取得
+  const forecastUrl = `https://api.open-meteo.com/v1/forecast?${base}&hourly=snow_depth&start_date=${date}&end_date=${addDays(date,1)}`;
+  const historicalUrl = `https://historical-forecast-api.open-meteo.com/v1/forecast?${base}&start_date=${d7ago}&end_date=${date}`;
+
   const [hRes, fRes] = await Promise.all([
-    fetch(`https://historical-forecast-api.open-meteo.com/v1/forecast?${base}&start_date=${d7ago}&end_date=${date}`),
-    fetch(`https://api.open-meteo.com/v1/forecast?${base}&start_date=${date}&end_date=${addDays(date,1)}`),
+    fetch(historicalUrl),
+    fetch(forecastUrl),
   ]);
 
   if (!hRes.ok && !fRes.ok) throw new Error('データ取得失敗');
@@ -490,8 +492,15 @@ async function fetchWeather(resort, date) {
   }
   function depthCm(v, u) {
     const n = parseFloat(v);
-    if (v==null || isNaN(n)) return 0;
+    if (v==null || isNaN(n)) return null;
     return (typeof u==='string' && u.toLowerCase()==='m') ? n*100 : Math.max(0, n);
+  }
+
+  function median(arr) {
+    if (!arr.length) return null;
+    const sorted = [...arr].sort((a,b)=>a-b);
+    const mid = Math.floor(sorted.length/2);
+    return sorted.length % 2 ? sorted[mid] : (sorted[mid-1] + sorted[mid]) / 2;
   }
 
   // 日付インデックス検索
@@ -499,16 +508,40 @@ async function fetchWeather(resort, date) {
     return (data?.daily?.time ?? []).indexOf(dt);
   }
 
-  // ---- 積雪深: historical の7日間から末尾に遡って最新の有効値を採用 ----
-  let depth = 0;
+  // ---- 積雪深: forecast hourly から JST 06:00-15:00 の中央値 ----
+  let depth = null;
   let depthDate = null;
-  if (hData) {
-    const hu = hData.daily_units ?? {};
-    const times  = hData.daily?.time ?? [];
-    const depths = hData.daily?.snow_depth_max ?? [];
-    for (let i = depths.length-1; i >= 0; i--) {
-      const v = depthCm(depths[i], hu.snow_depth_max);
-      if (v > 0) { depth = v; depthDate = times[i]; break; }
+
+  if (fData) {
+    const fu = fData.hourly_units ?? {};
+    const ft = fData.hourly?.time ?? [];
+    const fd = fData.hourly?.snow_depth ?? [];
+
+    const dayVals = [];
+    const windowVals = [];
+    for (let i = 0; i < ft.length; i++) {
+      const ts = ft[i] ?? '';
+      if (!ts.startsWith(date)) continue;
+      const cm = depthCm(fd[i], fu.snow_depth);
+      if (cm == null) continue;
+      dayVals.push(cm);
+      const hour = parseInt(ts.slice(11,13), 10);
+      if (hour >= 6 && hour <= 15) windowVals.push(cm);
+    }
+
+    depth = median(windowVals);
+    if (depth == null && dayVals.length) depth = dayVals[dayVals.length - 1];
+    depthDate = depth == null ? null : date;
+
+    if (DEBUG) {
+      console.log('[snow-depth-debug]', {
+        resort: resort.name,
+        requestUrl: forecastUrl,
+        hasHourlySnowDepth: Array.isArray(fd),
+        snowDepthUnit: fu.snow_depth,
+        sampleDepthValuesCm: dayVals.slice(0, 8).map(v => Math.round(v*10)/10),
+        computedDepthCm: depth,
+      });
     }
   }
 
@@ -526,9 +559,6 @@ async function fetchWeather(resort, date) {
     cloud     = fd.cloudcover_mean?.[j]    ?? 50;
     windMax   = fd.windspeed_10m_max?.[j]  ?? 0;
     precip    = fd.precipitation_sum?.[j]  ?? 0;
-    // forecast の積雪深が有効なら優先
-    const fd0 = depthCm(fd.snow_depth_max?.[j], fu.snow_depth_max);
-    if (fd0 > 0) { depth = fd0; depthDate = date; }
   } else if (hData) {
     const hu = hData.daily_units ?? {};
     const hd = hData.daily ?? {};
@@ -570,7 +600,7 @@ function calcScore(w, weights, resort) {
     snowQualityScore = tf*.6 + sf*.4;
   }
   const accumScore     = Math.min(accumSnow/50*100, 100);
-  const depthScore     = Math.min(depth/200*100, 100);
+  const depthScore     = depth == null ? 50 : Math.min(depth/200*100, 100);
   const sunScore       = Math.max(0, 100-cloud);
   const tempTrendScore = Math.max(0, Math.min(100, (-tempMax+3)/10*60 + (-tempMin+0)/10*40));
   const elevScore      = Math.min(Math.max((resort.elev-1000)/1300*100, 0), 100);
@@ -595,7 +625,7 @@ function calcScore(w, weights, resort) {
     total,
     snowfall:         w.todaySnow.toFixed(1),
     accumSnow:        w.accumSnow.toFixed(1),
-    depth:            Math.round(w.depth),
+    depth:            w.depth == null ? null : Math.round(w.depth),
     depthDate:        w.depthDate,
     cloud:            Math.round(cloud),
     tempMax:          tempMax.toFixed(1),
@@ -659,7 +689,9 @@ function genComment(w, resort) {
 
   if (accum>=30 && accum>snow+5) parts.push(`直近3日累計 <strong>${w.accumSnow}cm</strong> でベース充実`);
 
-  if      (w.depth>=200) parts.push(`積雪深 <strong>${w.depth}cm</strong>！下地は申し分なし`);
+  if (w.depth == null) {
+    parts.push('積雪深データなし。公式情報を確認してください');
+  } else if (w.depth>=200) parts.push(`積雪深 <strong>${w.depth}cm</strong>！下地は申し分なし`);
   else if (w.depth>=100) parts.push(`積雪深 ${w.depth}cm、十分なベース`);
   else if (w.depth< 50)  parts.push(`⚠️ 積雪深 ${w.depth}cm — 公式情報を確認して`);
 
@@ -692,7 +724,7 @@ function renderCard(resort, rank, w) {
 
   // 積雪深の注釈
   let depthNoteHtml = '';
-  if (w.depth > 0) {
+  if (w.depth != null) {
     const isToday = w.depthDate === document.getElementById('targetDate').value;
     const tag  = isToday ? '予報値' : `${w.depthDate}実績`;
     const cls  = isToday ? 'dn-model' : 'dn-model';
@@ -754,7 +786,7 @@ function renderCard(resort, rank, w) {
           <div class="metric-label">3日累計</div>
         </div>
         <div class="metric hl">
-          <div class="metric-val" style="color:#29b6f6">${w.depth}<span style="font-size:.6rem">cm</span></div>
+          <div class="metric-val" style="color:#29b6f6">${w.depth==null ? 'データなし' : `${w.depth}<span style="font-size:.6rem">cm</span>`}</div>
           <div class="metric-label">積雪深★</div>
         </div>
         <div class="metric">
