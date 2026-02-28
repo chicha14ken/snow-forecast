@@ -1,0 +1,622 @@
+[
+  {
+    "id": "niigata_naeba",
+    "name": "苗場スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.852, "lon": 138.669 },
+    "summit": { "lat": 36.860, "lon": 138.684, "ele_m": 1518, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["苗場"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_kagura",
+    "name": "かぐらスキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.867, "lon": 138.713 },
+    "summit": { "lat": 36.879, "lon": 138.726, "ele_m": 1845, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["かぐら", "みつまたかぐら"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_gala",
+    "name": "GALA湯沢スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.924, "lon": 138.836 },
+    "summit": { "lat": 36.924, "lon": 138.836, "ele_m": 1181, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["ガーラ湯沢", "GALA湯沢"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_naspa",
+    "name": "NASPAスキーガーデン",
+    "pref": "niigata",
+    "base": { "lat": 36.870, "lon": 138.829 },
+    "summit": { "lat": 36.871, "lon": 138.831, "ele_m": 900, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["NASPA"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_yuzawa_kogen",
+    "name": "湯沢高原スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.927, "lon": 138.820 },
+    "summit": { "lat": 36.929, "lon": 138.821, "ele_m": 1115, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["湯沢高原"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_ishiuchi",
+    "name": "石打丸山スキー場",
+    "pref": "niigata",
+    "base": { "lat": 37.024, "lon": 138.820 },
+    "summit": { "lat": 37.024, "lon": 138.822, "ele_m": 1002, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["石打丸山", "石打"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_maiko",
+    "name": "舞子スノーリゾート",
+    "pref": "niigata",
+    "base": { "lat": 37.040, "lon": 138.790 },
+    "summit": { "lat": 37.041, "lon": 138.791, "ele_m": 1060, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["舞子"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_hakkaisan",
+    "name": "六日町八海山スキー場",
+    "pref": "niigata",
+    "base": { "lat": 37.037, "lon": 138.869 },
+    "summit": { "lat": 37.038, "lon": 138.871, "ele_m": 1115, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["八海山スキー場", "六日町"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_kandatsu",
+    "name": "神立スノーリゾート",
+    "pref": "niigata",
+    "base": { "lat": 36.957, "lon": 138.827 },
+    "summit": { "lat": 36.958, "lon": 138.828, "ele_m": 1020, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["神立高原"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_joetsu",
+    "name": "上越国際スキー場",
+    "pref": "niigata",
+    "base": { "lat": 37.018, "lon": 138.779 },
+    "summit": { "lat": 37.018, "lon": 138.780, "ele_m": 900, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["上越国際"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_nakazato",
+    "name": "越後中里スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.905, "lon": 138.716 },
+    "summit": { "lat": 36.907, "lon": 138.718, "ele_m": 893, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["越後中里"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_muika",
+    "name": "ムイカスノーリゾート",
+    "pref": "niigata",
+    "base": { "lat": 37.055, "lon": 138.879 },
+    "summit": { "lat": 37.056, "lon": 138.880, "ele_m": 900, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["ムイカ"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_myoko_sugi",
+    "name": "妙高杉ノ原スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.935, "lon": 138.212 },
+    "summit": { "lat": 36.949, "lon": 138.211, "ele_m": 1855, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["杉ノ原", "妙高杉ノ原"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_akakura_kanko",
+    "name": "赤倉観光リゾートスキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.918, "lon": 138.205 },
+    "summit": { "lat": 36.924, "lon": 138.208, "ele_m": 1300, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["赤倉観光", "赤倉観光リゾート"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_ikenohira",
+    "name": "池の平温泉スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.959, "lon": 138.220 },
+    "summit": { "lat": 36.962, "lon": 138.220, "ele_m": 900, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["池の平"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_seki",
+    "name": "関温泉スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.964, "lon": 138.211 },
+    "summit": { "lat": 36.966, "lon": 138.213, "ele_m": 1060, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["関温泉"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_arai",
+    "name": "ロッテアライリゾート",
+    "pref": "niigata",
+    "base": { "lat": 37.004, "lon": 138.194 },
+    "summit": { "lat": 37.008, "lon": 138.196, "ele_m": 1984, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["アライリゾート", "アライ"],
+    "priority": 1
+  },
+  {
+    "id": "niigata_cupid",
+    "name": "キューピットバレイスキー場",
+    "pref": "niigata",
+    "base": { "lat": 37.046, "lon": 138.280 },
+    "summit": { "lat": 37.052, "lon": 138.279, "ele_m": 1271, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["キューピットバレイ"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_charman",
+    "name": "シャルマン火打スキー場",
+    "pref": "niigata",
+    "base": { "lat": 37.126, "lon": 138.156 },
+    "summit": { "lat": 37.128, "lon": 138.155, "ele_m": 1300, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["シャルマン火打"],
+    "priority": 0
+  },
+  {
+    "id": "niigata_akakura_onsen",
+    "name": "赤倉温泉スキー場",
+    "pref": "niigata",
+    "base": { "lat": 36.927, "lon": 138.200 },
+    "summit": { "lat": 36.928, "lon": 138.201, "ele_m": 1280, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["赤倉温泉"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_kusatsu",
+    "name": "草津温泉スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.627, "lon": 138.591 },
+    "summit": { "lat": 36.627, "lon": 138.595, "ele_m": 2010, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["草津", "草津国際スキー場"],
+    "priority": 1
+  },
+  {
+    "id": "gunma_manza",
+    "name": "万座温泉スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.653, "lon": 138.422 },
+    "summit": { "lat": 36.655, "lon": 138.424, "ele_m": 1800, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["万座"],
+    "priority": 1
+  },
+  {
+    "id": "gunma_kawaba",
+    "name": "川場スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.754, "lon": 139.017 },
+    "summit": { "lat": 36.756, "lon": 139.018, "ele_m": 1560, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["川場"],
+    "priority": 1
+  },
+  {
+    "id": "gunma_marunuma",
+    "name": "丸沼高原スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.866, "lon": 139.205 },
+    "summit": { "lat": 36.869, "lon": 139.207, "ele_m": 2000, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["丸沼高原"],
+    "priority": 1
+  },
+  {
+    "id": "gunma_oze_iwakura",
+    "name": "ホワイトワールド尾瀬岩鞍",
+    "pref": "gunma",
+    "base": { "lat": 36.789, "lon": 139.158 },
+    "summit": { "lat": 36.791, "lon": 139.160, "ele_m": 1600, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["尾瀬岩鞍", "岩鞍"],
+    "priority": 1
+  },
+  {
+    "id": "gunma_okutone",
+    "name": "奥利根スノーパーク",
+    "pref": "gunma",
+    "base": { "lat": 36.867, "lon": 139.219 },
+    "summit": { "lat": 36.869, "lon": 139.221, "ele_m": 1550, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["奥利根"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_oguna_hotaka",
+    "name": "オグナほたかスキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.808, "lon": 139.152 },
+    "summit": { "lat": 36.811, "lon": 139.155, "ele_m": 1560, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["オグナほたか"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_hotaka_makiba",
+    "name": "武尊牧場スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.825, "lon": 139.177 },
+    "summit": { "lat": 36.828, "lon": 139.178, "ele_m": 1560, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["武尊牧場"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_tambara",
+    "name": "たんばらスキーパーク",
+    "pref": "gunma",
+    "base": { "lat": 36.650, "lon": 139.095 },
+    "summit": { "lat": 36.653, "lon": 139.097, "ele_m": 1750, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["たんばら"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_oigami",
+    "name": "老神スキー場",
+    "pref": "gunma",
+    "base": { "lat": 36.695, "lon": 139.190 },
+    "summit": { "lat": 36.697, "lon": 139.192, "ele_m": 1000, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["老神"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_tambahara",
+    "name": "玉原スキーパーク",
+    "pref": "gunma",
+    "base": { "lat": 36.734, "lon": 138.925 },
+    "summit": { "lat": 36.736, "lon": 138.927, "ele_m": 1500, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["玉原"],
+    "priority": 0
+  },
+  {
+    "id": "gunma_saela",
+    "name": "サエラスキーリゾート奥利根",
+    "pref": "gunma",
+    "base": { "lat": 36.875, "lon": 139.223 },
+    "summit": { "lat": 36.877, "lon": 139.225, "ele_m": 1520, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["サエラ"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_happo",
+    "name": "白馬八方尾根スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.677, "lon": 137.762 },
+    "summit": { "lat": 36.677, "lon": 137.762, "ele_m": 1831, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["八方尾根", "八方"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_goryu",
+    "name": "エイブル白馬五竜&HAKUBA47",
+    "pref": "nagano",
+    "base": { "lat": 36.674, "lon": 137.766 },
+    "summit": { "lat": 36.673, "lon": 137.765, "ele_m": 1515, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["白馬五竜", "HAKUBA47", "五竜"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_cortina",
+    "name": "白馬コルチナスキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.756, "lon": 137.831 },
+    "summit": { "lat": 36.758, "lon": 137.833, "ele_m": 1495, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["コルチナ"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_iwatake",
+    "name": "白馬岩岳スノーフィールド",
+    "pref": "nagano",
+    "base": { "lat": 36.713, "lon": 137.807 },
+    "summit": { "lat": 36.716, "lon": 137.809, "ele_m": 1289, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["岩岳", "白馬岩岳"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_tsugaike",
+    "name": "栂池高原スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.798, "lon": 137.824 },
+    "summit": { "lat": 36.801, "lon": 137.826, "ele_m": 1592, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["栂池", "栂池高原"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_sanosaka",
+    "name": "白馬さのさかスキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.696, "lon": 137.867 },
+    "summit": { "lat": 36.698, "lon": 137.869, "ele_m": 1100, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["さのさか"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_kashimayari",
+    "name": "鹿島槍スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.753, "lon": 137.791 },
+    "summit": { "lat": 36.755, "lon": 137.793, "ele_m": 1680, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["鹿島槍"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_norikura_onsen",
+    "name": "白馬乗鞍温泉スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.771, "lon": 137.847 },
+    "summit": { "lat": 36.773, "lon": 137.849, "ele_m": 1480, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["白馬乗鞍温泉"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_yokote",
+    "name": "志賀高原 横手山スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.756, "lon": 138.510 },
+    "summit": { "lat": 36.756, "lon": 138.510, "ele_m": 2307, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["横手山", "志賀高原横手山"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_yakebitai",
+    "name": "志賀高原 焼額山スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.715, "lon": 138.477 },
+    "summit": { "lat": 36.718, "lon": 138.479, "ele_m": 2009, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["焼額山", "志賀高原焼額山"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_ryuoo",
+    "name": "竜王スキーパーク",
+    "pref": "nagano",
+    "base": { "lat": 36.781, "lon": 138.389 },
+    "summit": { "lat": 36.783, "lon": 138.391, "ele_m": 1930, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["竜王"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_okushiga",
+    "name": "奥志賀高原スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.831, "lon": 138.530 },
+    "summit": { "lat": 36.833, "lon": 138.532, "ele_m": 1860, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["奥志賀"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_ichinose",
+    "name": "志賀高原 一の瀬・発哺エリア",
+    "pref": "nagano",
+    "base": { "lat": 36.748, "lon": 138.456 },
+    "summit": { "lat": 36.750, "lon": 138.458, "ele_m": 1820, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["一の瀬", "発哺"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_nozawa",
+    "name": "野沢温泉スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.933, "lon": 138.449 },
+    "summit": { "lat": 36.935, "lon": 138.451, "ele_m": 1650, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["野沢温泉", "野沢"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_madarao",
+    "name": "斑尾高原スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.981, "lon": 138.378 },
+    "summit": { "lat": 36.983, "lon": 138.380, "ele_m": 1382, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["斑尾", "斑尾高原"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_togari",
+    "name": "戸狩温泉スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.912, "lon": 138.408 },
+    "summit": { "lat": 36.914, "lon": 138.410, "ele_m": 1050, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["戸狩"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_yomase",
+    "name": "よませ温泉スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.869, "lon": 138.358 },
+    "summit": { "lat": 36.871, "lon": 138.360, "ele_m": 1200, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["よませ温泉"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_sugadaira",
+    "name": "菅平高原スノーリゾート",
+    "pref": "nagano",
+    "base": { "lat": 36.531, "lon": 138.341 },
+    "summit": { "lat": 36.533, "lon": 138.343, "ele_m": 1700, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["菅平高原", "菅平"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_yunomaru",
+    "name": "湯の丸スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.437, "lon": 138.399 },
+    "summit": { "lat": 36.439, "lon": 138.401, "ele_m": 1900, "source": "manual" },
+    "needs_review": false,
+    "aliases": ["湯の丸"],
+    "priority": 1
+  },
+  {
+    "id": "nagano_takamine",
+    "name": "高峰高原スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.388, "lon": 138.413 },
+    "summit": { "lat": 36.390, "lon": 138.415, "ele_m": 2000, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["高峰高原"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_yabuhara",
+    "name": "やぶはらスキー場",
+    "pref": "nagano",
+    "base": { "lat": 35.966, "lon": 137.705 },
+    "summit": { "lat": 35.968, "lon": 137.707, "ele_m": 1800, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["やぶはら"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_maia",
+    "name": "開田高原マイアスキー場",
+    "pref": "nagano",
+    "base": { "lat": 35.958, "lon": 137.651 },
+    "summit": { "lat": 35.960, "lon": 137.653, "ele_m": 1600, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["マイア", "開田高原"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_echo_valley",
+    "name": "エコーバレースキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.338, "lon": 138.050 },
+    "summit": { "lat": 36.340, "lon": 138.052, "ele_m": 1500, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["エコーバレー"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_shirakaba",
+    "name": "しらかば2in1スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.315, "lon": 138.040 },
+    "summit": { "lat": 36.317, "lon": 138.042, "ele_m": 1500, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["しらかば2in1"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_tateshina",
+    "name": "蓼科東急スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.125, "lon": 138.270 },
+    "summit": { "lat": 36.127, "lon": 138.272, "ele_m": 1750, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["蓼科東急"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_pilatus",
+    "name": "ピラタス蓼科スノーリゾート",
+    "pref": "nagano",
+    "base": { "lat": 36.074, "lon": 138.340 },
+    "summit": { "lat": 36.076, "lon": 138.342, "ele_m": 2240, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["ピラタス蓼科"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_iizuna",
+    "name": "飯綱高原スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.712, "lon": 138.108 },
+    "summit": { "lat": 36.714, "lon": 138.110, "ele_m": 1200, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["飯綱高原"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_kurohime",
+    "name": "黒姫高原スノーパーク",
+    "pref": "nagano",
+    "base": { "lat": 36.862, "lon": 138.183 },
+    "summit": { "lat": 36.864, "lon": 138.185, "ele_m": 1350, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["黒姫高原"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_togakushi",
+    "name": "戸隠スキー場",
+    "pref": "nagano",
+    "base": { "lat": 36.776, "lon": 138.114 },
+    "summit": { "lat": 36.778, "lon": 138.116, "ele_m": 1350, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["戸隠"],
+    "priority": 0
+  },
+  {
+    "id": "nagano_blancs",
+    "name": "ブランシュたかやまスキーリゾート",
+    "pref": "nagano",
+    "base": { "lat": 36.294, "lon": 138.001 },
+    "summit": { "lat": 36.296, "lon": 138.003, "ele_m": 1500, "source": "fallback_base" },
+    "needs_review": true,
+    "aliases": ["ブランシュたかやま"],
+    "priority": 0
+  }
+]
