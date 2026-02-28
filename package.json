@@ -1,0 +1,19 @@
+{
+  "name": "snow-forecast",
+  "version": "2.0.0",
+  "description": "新潟・群馬・長野 ゲレンデ体験スコアリング ランキングアプリ",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "build:resorts": "tsx scripts/build-resorts.ts",
+    "build:resort-list": "tsx scripts/build-resort-list.ts",
+    "build:summits": "tsx scripts/enrich-summit-coords.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "tsx": "^4.9.3"
+  }
+}
